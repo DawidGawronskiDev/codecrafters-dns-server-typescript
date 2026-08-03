@@ -24,7 +24,8 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
   try {
     console.log(`Received data from ${remoteAddr.address}:${remoteAddr.port}`);
 
-    console.log(data.toString("hex").slice(25, -1));
+    const questionSectionBuffer = data.subarray(12, -1);
+    console.log(questionSectionBuffer.toString("hex"));
 
     udpSocket.send(
       responseHeader.headerToBuffer(),
