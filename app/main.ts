@@ -32,7 +32,14 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
     const questionSectionHex = questionSectionBuffer.toString("hex");
 
     let index = 0;
-    const length = parseInt(questionSectionHex.slice(index, index + 2), 16);
+    const labels = [];
+    while (index < questionSectionHex.length) {
+      const length = parseInt(questionSectionHex.slice(index, index + 2), 16);
+      console.log({ length });
+
+      index += index * 2 + 1;
+    }
+
     console.log({ length });
 
     udpSocket.send(
