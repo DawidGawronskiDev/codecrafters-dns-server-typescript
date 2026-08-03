@@ -167,7 +167,7 @@ export class DNSHeaderBuilder {
   }
 
   build(): DNSHeaderInterface {
-    return this.header;
+    return new DNSHeader(this.header);
   }
 }
 
