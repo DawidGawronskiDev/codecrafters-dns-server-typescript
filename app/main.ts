@@ -24,7 +24,7 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
   try {
     console.log(`Received data from ${remoteAddr.address}:${remoteAddr.port}`);
 
-    console.log({ data });
+    console.log(data.toString("hex"));
 
     udpSocket.send(
       responseHeader.headerToBuffer(),
