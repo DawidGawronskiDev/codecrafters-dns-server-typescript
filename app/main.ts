@@ -27,6 +27,8 @@ type Header = {
    * 1 - an inverse query (IQUERY)
    * 2 - a server status request (STATUS)
    * 3-15 - reserved for future use
+   *
+   * @size 4 bits
    */
   operationCode:
     | 0
@@ -79,7 +81,7 @@ type Header = {
   /**
    * Reserved for future use.  Must be zero in all queries and responses.
    *
-   * @size 1 bit
+   * @size 3 bits
    */
   reserved: 0;
   /**
@@ -156,28 +158,30 @@ const responseHeader: Header = {
   additionalCount: 0,
 };
 
-const responseHeaderBuffer = Buffer.alloc(12);
+const responseHeaderBuffer: Buffer = Buffer.alloc(12);
+
 responseHeaderBuffer.writeUInt16BE(responseHeader.packetId, 0);
+
 responseHeaderBuffer.writeUInt8(
-  responseHeader.queryResponseIndicator * 128 +
-    responseHeader.operationCode * 8 +
-    responseHeader.authorativeAnswer * 4 +
-    responseHeader.truncation * 2 +
+  (responseHeader.queryResponseIndicator << 7) |
+    (responseHeader.operationCode << 3) |
+    (responseHeader.authorativeAnswer << 2) |
+    (responseHeader.truncation << 1) |
     responseHeader.recursionDesired,
   2,
 );
+
 responseHeaderBuffer.writeUInt8(
-  responseHeader.recursionAvailable * 128 +
-    responseHeader.reserved * 16 +
+  (responseHeader.recursionAvailable << 7) |
+    (responseHeader.reserved << 4) |
     responseHeader.responseCode,
   3,
 );
+
 responseHeaderBuffer.writeUInt16BE(responseHeader.questionCount, 4);
 responseHeaderBuffer.writeUInt16BE(responseHeader.answerCount, 6);
 responseHeaderBuffer.writeUInt16BE(responseHeader.authorityCount, 8);
 responseHeaderBuffer.writeUInt16BE(responseHeader.additionalCount, 10);
-
-console.log({ responseHeaderBuffer });
 
 const udpSocket: dgram.Socket = dgram.createSocket("udp4");
 udpSocket.bind(2053, "127.0.0.1");
@@ -185,9 +189,8 @@ udpSocket.bind(2053, "127.0.0.1");
 udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
   try {
     console.log(`Received data from ${remoteAddr.address}:${remoteAddr.port}`);
-    const response = Buffer.from("");
 
-    udpSocket.send(response, remoteAddr.port, remoteAddr.address);
+    udpSocket.send(responseHeaderBuffer, remoteAddr.port, remoteAddr.address);
   } catch (e) {
     console.log(`Error sending data: ${e}`);
   }
