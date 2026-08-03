@@ -1,6 +1,10 @@
 import * as dgram from "dgram";
 import { DNSHeader, dnsHeaderBuilder } from "./dns-header";
 
+function hexToDecimal(hex: string): number {
+  return parseInt(hex, 16);
+}
+
 const responseHeader: DNSHeader = dnsHeaderBuilder
   .withPacketId(1234)
   .withQueryResponseIndicator(1)
@@ -28,7 +32,11 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
     const questionSectionHex = questionSectionBuffer.toString("hex");
 
     for (let i = 0; i < questionSectionHex.length; i += 2) {
-      console.log([questionSectionHex[i], questionSectionHex[i + 1]].join(""));
+      console.log(
+        hexToDecimal(
+          [questionSectionHex[i], questionSectionHex[i + 1]].join(""),
+        ),
+      );
     }
 
     udpSocket.send(
