@@ -33,8 +33,10 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
 
     for (let i = 0; i < questionSectionHex.length; i += 2) {
       console.log(
-        hexToDecimal(
-          [questionSectionHex[i], questionSectionHex[i + 1]].join(""),
+        String.fromCharCode(
+          hexToDecimal(
+            [questionSectionHex[i], questionSectionHex[i + 1]].join(""),
+          ),
         ),
       );
     }
