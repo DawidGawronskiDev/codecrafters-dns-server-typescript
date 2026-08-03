@@ -1,7 +1,7 @@
 import * as dgram from "dgram";
 import { DNSHeader, dnsHeaderBuilder } from "./dns-header";
 
-const responseHeader = dnsHeaderBuilder
+const responseHeader: DNSHeader = dnsHeaderBuilder
   .withPacketId(1234)
   .withQueryResponseIndicator(1)
   .withOperationCode(0)
@@ -15,7 +15,7 @@ const responseHeader = dnsHeaderBuilder
   .withAnswerCount(0)
   .withAuthorityCount(0)
   .withAdditionalCount(0)
-  .build() as DNSHeader;
+  .build();
 
 const udpSocket: dgram.Socket = dgram.createSocket("udp4");
 udpSocket.bind(2053, "127.0.0.1");
@@ -23,6 +23,8 @@ udpSocket.bind(2053, "127.0.0.1");
 udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
   try {
     console.log(`Received data from ${remoteAddr.address}:${remoteAddr.port}`);
+
+    console.log({ data });
 
     udpSocket.send(
       responseHeader.headerToBuffer(),
