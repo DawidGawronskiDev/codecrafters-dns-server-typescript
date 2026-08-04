@@ -43,17 +43,20 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       pending -= 1;
       if (pending > 0) return;
 
-      const response = Buffer.alloc(12);
-      response.writeUInt16BE(packetId, 0);
-      response.writeUInt8(0x80 | (operationCode << 3) | recursionDesired, 2);
-      response.writeUInt16BE(questionCount, 4);
-      response.writeUInt16BE(answers.length, 6);
-      response.writeUInt16BE(0, 8);
-      response.writeUInt16BE(0, 10);
+      const headerSectionBuffer = Buffer.alloc(12);
+      headerSectionBuffer.writeUInt16BE(packetId, 0);
+      headerSectionBuffer.writeUInt8(
+        0x80 | (operationCode << 3) | recursionDesired,
+        2,
+      );
+      headerSectionBuffer.writeUInt16BE(questionCount, 4);
+      headerSectionBuffer.writeUInt16BE(answers.length, 6);
+      headerSectionBuffer.writeUInt16BE(0, 8);
+      headerSectionBuffer.writeUInt16BE(0, 10);
 
       udpSocket.send(
         Buffer.concat([
-          response,
+          headerSectionBuffer,
           ...clientQuestions.map((q) => q.toBuffer()),
           ...answers.map((a) => a.toBuffer()),
         ]),
