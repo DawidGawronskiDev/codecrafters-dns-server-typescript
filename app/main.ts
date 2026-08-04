@@ -22,7 +22,7 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
     });
 
     resolverSocket.on("message", (responseData: Buffer) => {
-      console.log(responseData.toString("utf-8"));
+      console.log(responseData.toString("latin1"));
 
       const questionCount: number = responseData.readUInt16BE(4);
 
