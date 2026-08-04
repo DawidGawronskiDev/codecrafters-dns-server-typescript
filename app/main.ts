@@ -61,7 +61,7 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
 
       udpSocket.send(
         Buffer.concat([
-          responseHeader.headerToBuffer(),
+          Buffer.from([0x00]),
           ...clientQuestions.map((q) => q.toBuffer()),
           ...answers.map((a) => a.toBuffer()),
         ]),
