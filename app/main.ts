@@ -22,9 +22,26 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
     });
 
     resolverSocket.on("message", (responseData: Buffer) => {
-      console.log(responseData.toString("latin1"));
-
+      const packetId: number = responseData.readUInt16BE(0);
+      const operationCode: number = (responseData.readUInt8(2) >> 3) & 0x0f;
+      const recursionDesired: number = responseData.readUInt8(2) & 0x01;
       const questionCount: number = responseData.readUInt16BE(4);
+
+      const responseHeader: Header = headerBuilder
+        .withPacketId(packetId)
+        .withQueryResponseIndicator(1)
+        .withOperationCode(operationCode as OperationCode)
+        .withAuthorativeAnswer(0)
+        .withTruncation(0)
+        .withRecursionDesired(recursionDesired as RecursionDesired)
+        .withRecursionAvailable(0)
+        .withReserved(0)
+        .withResponseCode(4)
+        .withQuestionCount(questionCount)
+        .withAnswerCount(questionCount)
+        .withAuthorityCount(0)
+        .withAdditionalCount(0)
+        .build();
 
       const questions: Question[] = [];
       const answers: Answer[] = [];
