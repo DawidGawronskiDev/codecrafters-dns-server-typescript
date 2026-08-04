@@ -22,8 +22,12 @@ if (flag === "--resolver" && resolverAddress) {
     let cursor = 0;
     while (cursor < questionSectionBuffer.length) {
       const length = questionSectionBuffer[cursor];
+      const label = questionSectionBuffer.subarray(
+        cursor + 1,
+        cursor + 1 + length,
+      );
 
-      console.log(`Question section length: ${length}`);
+      console.log({ length, label: label.toString("utf-8") });
 
       if (length === 0) {
         break;
