@@ -3,7 +3,7 @@ import { Header, headerBuilder } from "./header";
 import { questionBuilder, type Question } from "./question";
 import { Extractor } from "./extractor";
 import { answerBuilder, type Answer } from "./answer";
-import type { OperationCode, RecursionDesired, ResponseCode } from "./types";
+import type { OperationCode, RecursionDesired } from "./types";
 
 const udpSocket: dgram.Socket = dgram.createSocket("udp4");
 udpSocket.bind(2053, "127.0.0.1");
@@ -30,10 +30,10 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       .withRecursionAvailable(0)
       .withReserved(0)
       .withResponseCode(4)
-      .withQuestionCount(questionCount)
-      .withAnswerCount(answerCount)
-      .withAuthorityCount(authorityCount)
-      .withAdditionalCount(additionalCount)
+      .withQuestionCount(1)
+      .withAnswerCount(1)
+      .withAuthorityCount(1)
+      .withAdditionalCount(1)
       .build();
 
     const questionSectionNameBuffer: Buffer = data.subarray(12);
