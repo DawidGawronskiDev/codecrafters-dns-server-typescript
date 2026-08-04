@@ -1,25 +1,26 @@
 export class Extractor {
   static extractLabelsFromQuestionSectionNameBuffer(
-    nameBuffers: Buffer[],
+    nameBuffer: Buffer,
   ): string[] {
-    const labels: string[] = [];
-    let index = 0;
+    const labels: Buffer[] = [];
+    let cursor: number = 0;
+    while (cursor < nameBuffer.length) {
+      const length: number = nameBuffer.readUInt8(cursor);
+      const label: Buffer = nameBuffer.subarray(
+        cursor + 1,
+        cursor + 1 + length,
+      );
 
-    for (const nameBuffer of nameBuffers) {
-      let index = 0;
-      while (index < nameBuffer.length) {
-        const length = nameBuffer.readUInt8(index);
-        if (length === 0) {
-          break;
-        }
-        const label = nameBuffer
-          .subarray(index + 1, index + 1 + length)
-          .toString("utf-8");
-        labels.push(label);
-        index += 1 + length;
+      if (length === 0) {
+        break;
       }
+
+      if (length > 0) {
+        labels.push(label);
+      }
+      cursor += length + 1;
     }
 
-    return labels;
+    return labels.map((label) => label.toString("utf-8"));
   }
 }
