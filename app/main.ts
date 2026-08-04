@@ -40,7 +40,7 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       const length: number = questionSectionNameBuffer.readUInt8(cursor);
       const label: string = questionSectionNameBuffer
         .subarray(cursor + 1, cursor + 1 + length)
-        .toString("utf-8");
+        .toString("latin1");
 
       console.log({ length, label });
 
