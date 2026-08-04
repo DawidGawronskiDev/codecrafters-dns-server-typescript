@@ -49,7 +49,7 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       labels.push(label);
     }
 
-    console.log("\\x" + labels.join("\\x"));
+    console.log("\\x0" + labels.join("\\x0"));
 
     udpSocket.send(
       responseHeader.headerToBuffer(),
