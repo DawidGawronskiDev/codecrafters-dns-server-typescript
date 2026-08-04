@@ -23,9 +23,16 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
     });
 
     resolverSocket.on("message", (responseData: Buffer) => {
-      console.log({ responseData });
-      const packetId: number = responseData.readUInt16BE(0);
-      console.log({ packetId });
+      udpSocket.send(
+        responseData,
+        remoteAddr.port,
+        remoteAddr.address,
+        (err) => {
+          if (err) {
+            console.error(`Error sending response back to client: ${err}`);
+          }
+        },
+      );
     });
 
     return;
