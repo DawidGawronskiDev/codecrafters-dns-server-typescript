@@ -33,27 +33,31 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       .withAdditionalCount(1)
       .build();
 
-    const binary = data.toString("binary");
-
-    for (let i = 0; i < binary.length; i++) {
-      if (i % 16 === 0) {
-        console.log("");
-      }
-      const byte = binary.charCodeAt(i);
-      console.log(byte.toString(16).padStart(2, "0") + " ");
-    }
-
     const questionSectionNameBuffer: Buffer = data.subarray(12);
 
-    const question: Question = questionBuilder
-      .withName(
-        Extractor.extractLabelsFromQuestionSectionNameBuffer(
-          questionSectionNameBuffer,
-        ).join("."),
-      )
-      .withType(1)
-      .withClass(1)
-      .build();
+    let cursor: number = 0;
+    while (cursor < questionSectionNameBuffer.length) {
+      const length: number = questionSectionNameBuffer.readUInt8(cursor);
+      const label: string = questionSectionNameBuffer
+        .subarray(cursor + 1, cursor + 1 + length)
+        .toString("utf-8");
+
+      console.log({ length, label });
+
+      if (length === 0) {
+        break;
+      }
+      cursor += length + 1;
+    }
+    // const question: Question = questionBuilder
+    //   .withName(
+    //     Extractor.extractLabelsFromQuestionSectionNameBuffer(
+    //       questionSectionNameBuffer,
+    //     ).join("."),
+    //   )
+    //   .withType(1)
+    //   .withClass(1)
+    //   .build();
 
     const answer: Answer = answerBuilder
       .withName(question.name)
