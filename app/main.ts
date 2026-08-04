@@ -41,7 +41,9 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       );
     }
 
-    console.log(bytes, "Received data in hex format");
+    console.log({
+      chars: bytes.map((b) => String.fromCharCode(parseInt(b, 16))).join(""),
+    });
 
     const questionSectionNameBuffer: Buffer = data.subarray(12);
 
