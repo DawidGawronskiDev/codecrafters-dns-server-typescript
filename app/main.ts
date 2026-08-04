@@ -50,7 +50,7 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
         break;
       }
 
-      if (length > 0) {
+      if (length > 63) {
         labels.push(label);
       }
       cursor += length + 1;
