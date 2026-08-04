@@ -50,7 +50,9 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
         break;
       }
 
-      labels.push(label);
+      if (length > 0) {
+        labels.push(label);
+      }
       cursor += length + 1;
     }
     // const question: Question = questionBuilder
