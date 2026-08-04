@@ -9,6 +9,14 @@ const udpSocket: dgram.Socket = dgram.createSocket("udp4");
 udpSocket.bind(2053, "127.0.0.1");
 
 const [flag, resolverAddress] = process.argv.slice(2);
+console.log(
+  "argv:",
+  process.argv,
+  "flag:",
+  flag,
+  "resolverAddress:",
+  resolverAddress,
+);
 
 udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
   if (flag === "--resolver" && resolverAddress) {
