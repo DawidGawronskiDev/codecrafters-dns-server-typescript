@@ -23,6 +23,49 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
     });
 
     resolverSocket.on("message", (responseData: Buffer) => {
+      const questionCount: number = responseData.readUInt16BE(4);
+
+      const questions: Question[] = [];
+      const answers: Answer[] = [];
+      let offset: number = 12;
+
+      for (let i = 0; i < questionCount; i++) {
+        const { labels, nextOffset } = Extractor.extractName(
+          responseData,
+          offset,
+        );
+        const type = responseData.readUInt16BE(nextOffset);
+        const class_ = responseData.readUInt16BE(nextOffset + 2);
+        offset = nextOffset + 4;
+
+        const question: Question = questionBuilder
+          .withName(labels.join("."))
+          .withType(type as Question["type"])
+          .withClass(class_ as Question["class"])
+          .build();
+        questions.push(question);
+
+        answers.push(
+          answerBuilder
+            .withName(question.name)
+            .withType(1)
+            .withClass(1)
+            .withTimeToLive(120)
+            .withData(Buffer.from([8, 8, 8, 8]))
+            .build(),
+        );
+      }
+
+      udpSocket.send(
+        Buffer.concat([
+          responseData.subarray(0, 12), // Only send the header section
+          ...questions.map((question) => question.toBuffer()),
+          ...answers.map((answer) => answer.toBuffer()),
+        ]),
+        remoteAddr.port,
+        remoteAddr.address,
+      );
+
       udpSocket.send(
         responseData.subarray(0, 12), // Only send the header section
         remoteAddr.port,
