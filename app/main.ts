@@ -8,6 +8,10 @@ import type { OperationCode, RecursionDesired } from "./types";
 const udpSocket: dgram.Socket = dgram.createSocket("udp4");
 udpSocket.bind(2053, "127.0.0.1");
 
+const [flag, address] = process.argv.slice(2);
+
+console.log({ flag, address });
+
 udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
   try {
     console.log(`Received data from ${remoteAddr.address}:${remoteAddr.port}`);
