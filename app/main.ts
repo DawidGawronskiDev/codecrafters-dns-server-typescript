@@ -43,7 +43,7 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       .withName(question.name)
       .withType(1)
       .withClass(1)
-      .withTimeToLive(120)
+      .withTimeToLive(1200)
       .withDataLength(4)
       .build();
 
