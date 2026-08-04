@@ -9,132 +9,28 @@ const udpSocket: dgram.Socket = dgram.createSocket("udp4");
 udpSocket.bind(2053, "127.0.0.1");
 
 const [flag, resolverAddress] = process.argv.slice(2);
+console.log({ flag, resolverAddress });
+
+if (flag === "--resolver" && resolverAddress) {
+  const [resolverHost, resolverPort] = resolverAddress.split(":");
+
+  const resolverSocket: dgram.Socket = dgram.createSocket("udp4");
+
+  resolverSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
+    console.log("Received response from resolver:", data);
+  });
+
+  udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
+    console.log("Forwarding query to resolver:", data);
+    resolverSocket.send(data, parseInt(resolverPort), resolverHost);
+  });
+}
+
+(() => {
+  return;
+})();
 
 udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
-  if (flag === "--resolver" && resolverAddress) {
-    const [host, port] = resolverAddress.split(":");
-
-    const packetId: number = data.readUInt16BE(0);
-    const operationCode: number = (data.readUInt8(2) >> 3) & 0x0f;
-    const recursionDesired: number = data.readUInt8(2) & 0x01;
-    const questionCount: number = data.readUInt16BE(4);
-
-    const clientQuestions: Question[] = [];
-    let offset: number = 12;
-    for (let i = 0; i < questionCount; i++) {
-      const { labels, nextOffset } = Extractor.extractName(data, offset);
-      const type = data.readUInt16BE(nextOffset);
-      const class_ = data.readUInt16BE(nextOffset + 2);
-      offset = nextOffset + 4;
-
-      clientQuestions.push(
-        questionBuilder
-          .withName(labels.join("."))
-          .withType(type as Question["type"])
-          .withClass(class_ as Question["class"])
-          .build(),
-      );
-    }
-
-    const answers: Answer[] = [];
-    let pending = questionCount;
-
-    const sendResponseWhenDone = () => {
-      pending -= 1;
-      if (pending > 0) return;
-
-      const responseHeader: Header = headerBuilder
-        .withPacketId(packetId)
-        .withQueryResponseIndicator(1)
-        .withOperationCode(operationCode as OperationCode)
-        .withAuthorativeAnswer(0)
-        .withTruncation(0)
-        .withRecursionDesired(recursionDesired as RecursionDesired)
-        .withRecursionAvailable(0)
-        .withReserved(0)
-        .withResponseCode(0)
-        .withQuestionCount(questionCount)
-        .withAnswerCount(answers.length)
-        .withAuthorityCount(0)
-        .withAdditionalCount(0)
-        .build();
-
-      udpSocket.send(
-        Buffer.concat([
-          responseHeader.headerToBuffer(),
-          ...clientQuestions.map((q) => q.toBuffer()),
-          ...answers.map((a) => a.toBuffer()),
-        ]),
-        remoteAddr.port,
-        remoteAddr.address,
-      );
-    };
-
-    clientQuestions.forEach((question) => {
-      const singleQuestionHeader = headerBuilder
-        .withPacketId(packetId)
-        .withQueryResponseIndicator(0)
-        .withOperationCode(operationCode as OperationCode)
-        .withAuthorativeAnswer(0)
-        .withTruncation(0)
-        .withRecursionDesired(recursionDesired as RecursionDesired)
-        .withRecursionAvailable(0)
-        .withReserved(0)
-        .withResponseCode(0)
-        .withQuestionCount(1)
-        .withAnswerCount(0)
-        .withAuthorityCount(0)
-        .withAdditionalCount(0)
-        .build();
-
-      const resolverSocket: dgram.Socket = dgram.createSocket("udp4");
-      resolverSocket.send(
-        Buffer.concat([
-          singleQuestionHeader.headerToBuffer(),
-          question.toBuffer(),
-        ]),
-        parseInt(port),
-        host,
-      );
-
-      resolverSocket.on("message", (responseData: Buffer) => {
-        try {
-          const { nextOffset: questionEnd } = Extractor.extractName(
-            responseData,
-            12,
-          );
-          const { nextOffset: answerNameEnd } = Extractor.extractName(
-            responseData,
-            questionEnd + 4,
-          );
-          const rdlength = responseData.readUInt16BE(answerNameEnd + 8);
-          const rdataOffset = answerNameEnd + 10;
-
-          answers.push(
-            answerBuilder
-              .withName(question.name)
-              .withType(1)
-              .withClass(1)
-              .withTimeToLive(120)
-              .withData(
-                Buffer.from(
-                  responseData.subarray(rdataOffset, rdataOffset + rdlength),
-                ),
-              )
-              .build(),
-          );
-        } catch (e) {
-          console.log(`Error handling resolver response: ${e}`);
-        } finally {
-          resolverSocket.close();
-          sendResponseWhenDone();
-        }
-      });
-    });
-
-    return;
-  }
-
   try {
     const packetId: number = data.readUInt16BE(0);
     const operationCode: number = (data.readUInt8(2) >> 3) & 0x0f;
@@ -150,7 +46,7 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       .withRecursionDesired(recursionDesired as RecursionDesired)
       .withRecursionAvailable(0)
       .withReserved(0)
-      .withResponseCode(0)
+      .withResponseCode(4)
       .withQuestionCount(questionCount)
       .withAnswerCount(questionCount)
       .withAuthorityCount(0)
