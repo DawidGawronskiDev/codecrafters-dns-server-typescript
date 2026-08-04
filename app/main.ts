@@ -15,7 +15,7 @@ const responseHeader: Header = headerBuilder
   .withReserved(0)
   .withResponseCode(0)
   .withQuestionCount(1)
-  .withAnswerCount(0)
+  .withAnswerCount(1)
   .withAuthorityCount(0)
   .withAdditionalCount(0)
   .build();
