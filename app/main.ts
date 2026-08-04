@@ -54,8 +54,6 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       cursor += length + 1;
     }
 
-    console.log(labels);
-
     const question: Question = questionBuilder
       .withName(
         Extractor.extractLabelsFromQuestionSectionNameBuffer(labels).join("."),
