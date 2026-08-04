@@ -31,6 +31,8 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
         resolverSocketInstance.close();
       });
 
+      udpSocket.send(data, remoteAddr.port, remoteAddr.address);
+
       return;
     }
 
