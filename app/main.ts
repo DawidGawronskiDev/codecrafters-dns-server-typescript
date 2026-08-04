@@ -22,6 +22,8 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
     });
 
     resolverSocket.on("message", (responseData: Buffer) => {
+      console.log(responseData.toString("utf-8"));
+
       const questionCount: number = responseData.readUInt16BE(4);
 
       const questions: Question[] = [];
@@ -50,7 +52,7 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
             .withType(1)
             .withClass(1)
             .withTimeToLive(120)
-            .withData(Buffer.from(answers[0]?.data || [8, 8, 8, 8]))
+            .withData(Buffer.from([8, 8, 8, 8]))
             .build(),
         );
       }
