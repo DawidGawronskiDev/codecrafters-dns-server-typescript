@@ -63,15 +63,27 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
             .build();
           questions.push(question);
 
+          const { nextOffset: answerDataStart } = Extractor.extractName(
+            resolverData,
+            offset,
+          );
+          const rdlength = resolverData.readUInt16BE(answerDataStart + 8);
+          const rdataOffset = answerDataStart + 10;
+
           answers.push(
             answerBuilder
               .withName(question.name)
               .withType(1)
               .withClass(1)
               .withTimeToLive(120)
-              .withData(Buffer.from(resolverData.subarray(offset, offset + 4)))
+              .withData(
+                Buffer.from(
+                  resolverData.subarray(rdataOffset, rdataOffset + rdlength),
+                ),
+              )
               .build(),
           );
+          offset = rdataOffset + rdlength;
         }
 
         udpSocket.send(
