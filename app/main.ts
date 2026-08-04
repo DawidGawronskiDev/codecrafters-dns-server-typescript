@@ -15,7 +15,7 @@ const responseHeader: DNSHeader = dnsHeaderBuilder
   .withRecursionAvailable(0)
   .withReserved(0)
   .withResponseCode(0)
-  .withQuestionCount(0)
+  .withQuestionCount(1)
   .withAnswerCount(0)
   .withAuthorityCount(0)
   .withAdditionalCount(0)
@@ -48,8 +48,6 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       }
       labels.push(label);
     }
-
-    console.log("\\x0" + labels.join("\\x0"));
 
     udpSocket.send(
       responseHeader.headerToBuffer(),
