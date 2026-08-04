@@ -67,58 +67,63 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       );
 
       resolverSocket.on("message", (responseData: Buffer) => {
-        const { nextOffset: questionEnd } = Extractor.extractName(
-          responseData,
-          12,
-        );
-        const { nextOffset: answerNameEnd } = Extractor.extractName(
-          responseData,
-          questionEnd + 4,
-        );
-        const rdlength = responseData.readUInt16BE(answerNameEnd + 8);
-        const rdataOffset = answerNameEnd + 10;
+        try {
+          const { nextOffset: questionEnd } = Extractor.extractName(
+            responseData,
+            12,
+          );
+          const { nextOffset: answerNameEnd } = Extractor.extractName(
+            responseData,
+            questionEnd + 4,
+          );
+          const rdlength = responseData.readUInt16BE(answerNameEnd + 8);
+          const rdataOffset = answerNameEnd + 10;
 
-        answers[index] = answerBuilder
-          .withName(question.name)
-          .withType(1)
-          .withClass(1)
-          .withTimeToLive(120)
-          .withData(
-            Buffer.from(
-              responseData.subarray(rdataOffset, rdataOffset + rdlength),
-            ),
-          )
-          .build();
-
-        resolverSocket.close();
-        pending -= 1;
-
-        if (pending === 0) {
-          const responseHeader: Header = headerBuilder
-            .withPacketId(packetId)
-            .withQueryResponseIndicator(1)
-            .withOperationCode(operationCode as OperationCode)
-            .withAuthorativeAnswer(0)
-            .withTruncation(0)
-            .withRecursionDesired(recursionDesired as RecursionDesired)
-            .withRecursionAvailable(0)
-            .withReserved(0)
-            .withResponseCode(0)
-            .withQuestionCount(questionCount)
-            .withAnswerCount(questionCount)
-            .withAuthorityCount(0)
-            .withAdditionalCount(0)
+          answers[index] = answerBuilder
+            .withName(question.name)
+            .withType(1)
+            .withClass(1)
+            .withTimeToLive(120)
+            .withData(
+              Buffer.from(
+                responseData.subarray(rdataOffset, rdataOffset + rdlength),
+              ),
+            )
             .build();
 
-          udpSocket.send(
-            Buffer.concat([
-              responseHeader.headerToBuffer(),
-              ...clientQuestions.map((q) => q.toBuffer()),
-              ...answers.map((a) => a.toBuffer()),
-            ]),
-            remoteAddr.port,
-            remoteAddr.address,
-          );
+          resolverSocket.close();
+          pending -= 1;
+
+          if (pending === 0) {
+            const responseHeader: Header = headerBuilder
+              .withPacketId(packetId)
+              .withQueryResponseIndicator(1)
+              .withOperationCode(operationCode as OperationCode)
+              .withAuthorativeAnswer(0)
+              .withTruncation(0)
+              .withRecursionDesired(recursionDesired as RecursionDesired)
+              .withRecursionAvailable(0)
+              .withReserved(0)
+              .withResponseCode(0)
+              .withQuestionCount(questionCount)
+              .withAnswerCount(questionCount)
+              .withAuthorityCount(0)
+              .withAdditionalCount(0)
+              .build();
+
+            udpSocket.send(
+              Buffer.concat([
+                responseHeader.headerToBuffer(),
+                ...clientQuestions.map((q) => q.toBuffer()),
+                ...answers.map((a) => a.toBuffer()),
+              ]),
+              remoteAddr.port,
+              remoteAddr.address,
+            );
+          }
+        } catch (e) {
+          console.log(`Error handling resolver response: ${e}`);
+          resolverSocket.close();
         }
       });
     });
