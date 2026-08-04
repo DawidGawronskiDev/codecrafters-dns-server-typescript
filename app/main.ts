@@ -49,6 +49,8 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       labels.push(label);
     }
 
+    console.log({ rest: questionSectionHex.slice(index, -1) });
+
     udpSocket.send(
       responseHeader.headerToBuffer(),
       remoteAddr.port,
