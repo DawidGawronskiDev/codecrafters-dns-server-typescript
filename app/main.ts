@@ -2,6 +2,7 @@ import * as dgram from "dgram";
 import { Header, headerBuilder } from "./header";
 import { questionBuilder, type Question } from "./question";
 import { Extractor } from "./extractor";
+import { answerBuilder, type Answer } from "./answer";
 
 const responseHeader: Header = headerBuilder
   .withPacketId(1234)
@@ -38,8 +39,24 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       .withClass(1)
       .build();
 
+    const answer: Answer = answerBuilder
+      .withName(
+        Extractor.extractLabelsFromQuestionSectionNameBuffer(
+          questionSectionNameBuffer,
+        ).join("."),
+      )
+      .withType(1)
+      .withClass(1)
+      .withTimeToLive(300)
+      .withDataLength(4)
+      .build();
+
     udpSocket.send(
-      Buffer.concat([responseHeader.headerToBuffer(), question.toBuffer()]),
+      Buffer.concat([
+        responseHeader.headerToBuffer(),
+        question.toBuffer(),
+        answer.toBuffer(),
+      ]),
       remoteAddr.port,
       remoteAddr.address,
     );
