@@ -22,8 +22,6 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
     const clientQuestions: Question[] = [];
     let offset: number = 12;
     for (let i = 0; i < questionCount; i++) {
-      console.log({ offset });
-
       const { labels, nextOffset } = Extractor.extractName(data, offset);
       const type = data.readUInt16BE(nextOffset);
       const class_ = data.readUInt16BE(nextOffset + 2);
@@ -54,7 +52,7 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
         .withRecursionDesired(recursionDesired as RecursionDesired)
         .withRecursionAvailable(0)
         .withReserved(0)
-        .withResponseCode(0)
+        .withResponseCode(operationCode === 0 ? 0 : 4)
         .withQuestionCount(questionCount)
         .withAnswerCount(answers.length)
         .withAuthorityCount(0)
@@ -149,7 +147,7 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       .withRecursionDesired(recursionDesired as RecursionDesired)
       .withRecursionAvailable(0)
       .withReserved(0)
-      .withResponseCode(0)
+      .withResponseCode(operationCode === 0 ? 0 : 4)
       .withQuestionCount(questionCount)
       .withAnswerCount(questionCount)
       .withAuthorityCount(0)
