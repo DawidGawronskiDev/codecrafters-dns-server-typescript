@@ -27,7 +27,30 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       resolverSocketInstance.send(data, parseInt(port), address);
 
       resolverSocketInstance.on("message", (resolverData: Buffer) => {
-        udpSocket.send(resolverData, remoteAddr.port, remoteAddr.address);
+        const responseHeader: Header = headerBuilder
+          .withPacketId(parseInt(resolverData.readUInt16BE(0).toString()))
+          .withQueryResponseIndicator(1)
+          .withOperationCode(operationCode as OperationCode)
+          .withAuthorativeAnswer(0)
+          .withTruncation(0)
+          .withRecursionDesired(recursionDesired as RecursionDesired)
+          .withRecursionAvailable(0)
+          .withReserved(0)
+          .withResponseCode(0)
+          .withQuestionCount(questionCount)
+          .withAnswerCount(questionCount)
+          .withAuthorityCount(0)
+          .withAdditionalCount(0)
+          .build();
+
+        udpSocket.send(
+          Buffer.concat([
+            responseHeader.headerToBuffer(),
+            resolverData.subarray(12),
+          ]),
+          remoteAddr.port,
+          remoteAddr.address,
+        );
         resolverSocketInstance.close();
       });
 
