@@ -23,7 +23,7 @@ export class Question implements QuestionInterface {
       nameBufferArray.push(lengthBuffer, partBuffer);
     }
 
-    // Add a zero-length octet to terminate the name
+    // Push 0 length byte to indicate the end of the name
     nameBufferArray.push(Buffer.alloc(1));
 
     const typeBuffer: Buffer = Buffer.alloc(2);

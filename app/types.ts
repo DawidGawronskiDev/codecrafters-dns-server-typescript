@@ -150,7 +150,7 @@ export type AuthorityCount = number;
  */
 export type AdditionalCount = number;
 
-export interface DNSHeaderInterface {
+export interface HeaderInterface {
   packetId: PacketId;
   queryResponseIndicator: QueryResponseIndicator;
   operationCode: OperationCode;

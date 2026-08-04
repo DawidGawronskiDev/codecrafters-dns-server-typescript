@@ -1,5 +1,5 @@
 import type {
-  DNSHeaderInterface,
+  HeaderInterface,
   PacketId,
   QueryResponseIndicator,
   OperationCode,
@@ -15,7 +15,7 @@ import type {
   AdditionalCount,
 } from "./types";
 
-export class DNSHeader implements DNSHeaderInterface {
+export class Header implements HeaderInterface {
   packetId: PacketId;
   queryResponseIndicator: QueryResponseIndicator;
   operationCode: OperationCode;
@@ -30,7 +30,7 @@ export class DNSHeader implements DNSHeaderInterface {
   authorityCount: AuthorityCount;
   additionalCount: AdditionalCount;
 
-  constructor(header: DNSHeaderInterface) {
+  constructor(header: HeaderInterface) {
     this.packetId = header.packetId;
     this.queryResponseIndicator = header.queryResponseIndicator;
     this.operationCode = header.operationCode;
@@ -74,8 +74,8 @@ export class DNSHeader implements DNSHeaderInterface {
   }
 }
 
-export class DNSHeaderBuilder {
-  private header: DNSHeaderInterface;
+export class HeaderBuilder {
+  private header: HeaderInterface;
 
   constructor() {
     this.header = {
@@ -95,80 +95,78 @@ export class DNSHeaderBuilder {
     };
   }
 
-  withPacketId(packetId: PacketId): DNSHeaderBuilder {
+  withPacketId(packetId: PacketId): HeaderBuilder {
     this.header.packetId = packetId;
     return this;
   }
 
   withQueryResponseIndicator(
     queryResponseIndicator: QueryResponseIndicator,
-  ): DNSHeaderBuilder {
+  ): HeaderBuilder {
     this.header.queryResponseIndicator = queryResponseIndicator;
     return this;
   }
 
-  withOperationCode(operationCode: OperationCode): DNSHeaderBuilder {
+  withOperationCode(operationCode: OperationCode): HeaderBuilder {
     this.header.operationCode = operationCode;
     return this;
   }
 
-  withAuthorativeAnswer(
-    authorativeAnswer: AuthorativeAnswer,
-  ): DNSHeaderBuilder {
+  withAuthorativeAnswer(authorativeAnswer: AuthorativeAnswer): HeaderBuilder {
     this.header.authorativeAnswer = authorativeAnswer;
     return this;
   }
 
-  withTruncation(truncation: Truncation): DNSHeaderBuilder {
+  withTruncation(truncation: Truncation): HeaderBuilder {
     this.header.truncation = truncation;
     return this;
   }
 
-  withRecursionDesired(recursionDesired: RecursionDesired): DNSHeaderBuilder {
+  withRecursionDesired(recursionDesired: RecursionDesired): HeaderBuilder {
     this.header.recursionDesired = recursionDesired;
     return this;
   }
 
   withRecursionAvailable(
     recursionAvailable: RecursionAvailable,
-  ): DNSHeaderBuilder {
+  ): HeaderBuilder {
     this.header.recursionAvailable = recursionAvailable;
     return this;
   }
 
-  withReserved(reserved: Reserved): DNSHeaderBuilder {
+  withReserved(reserved: Reserved): HeaderBuilder {
     this.header.reserved = reserved;
     return this;
   }
 
-  withResponseCode(responseCode: ResponseCode): DNSHeaderBuilder {
+  withResponseCode(responseCode: ResponseCode): HeaderBuilder {
     this.header.responseCode = responseCode;
     return this;
   }
 
-  withQuestionCount(questionCount: QuestionCount): DNSHeaderBuilder {
+  withQuestionCount(questionCount: QuestionCount): HeaderBuilder {
     this.header.questionCount = questionCount;
     return this;
   }
 
-  withAnswerCount(answerCount: AnswerCount): DNSHeaderBuilder {
+  withAnswerCount(answerCount: AnswerCount): HeaderBuilder {
     this.header.answerCount = answerCount;
     return this;
   }
 
-  withAuthorityCount(authorityCount: AuthorityCount): DNSHeaderBuilder {
+  withAuthorityCount(authorityCount: AuthorityCount): HeaderBuilder {
     this.header.authorityCount = authorityCount;
     return this;
   }
 
-  withAdditionalCount(additionalCount: AdditionalCount): DNSHeaderBuilder {
+  withAdditionalCount(additionalCount: AdditionalCount): HeaderBuilder {
     this.header.additionalCount = additionalCount;
     return this;
   }
 
-  build(): DNSHeader {
-    return new DNSHeader(this.header);
+  build(): Header {
+    return new Header(this.header);
   }
 }
 
-export const dnsHeaderBuilder = new DNSHeaderBuilder();
+export const headerBuilder = new HeaderBuilder();
