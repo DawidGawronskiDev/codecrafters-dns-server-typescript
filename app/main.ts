@@ -36,7 +36,7 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
         .withRecursionDesired(recursionDesired as RecursionDesired)
         .withRecursionAvailable(0)
         .withReserved(0)
-        .withResponseCode(4)
+        .withResponseCode(0)
         .withQuestionCount(questionCount)
         .withAnswerCount(questionCount)
         .withAuthorityCount(0)
@@ -63,36 +63,37 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
           .build();
         questions.push(question);
 
+        const { nextOffset: answerNameEnd } = Extractor.extractName(
+          responseData,
+          offset,
+        );
+        const rdlength = responseData.readUInt16BE(answerNameEnd + 8);
+        const rdataOffset = answerNameEnd + 10;
+
         answers.push(
           answerBuilder
             .withName(question.name)
             .withType(1)
             .withClass(1)
             .withTimeToLive(120)
-            .withData(Buffer.from([8, 8, 8, 8]))
+            .withData(
+              Buffer.from(
+                responseData.subarray(rdataOffset, rdataOffset + rdlength),
+              ),
+            )
             .build(),
         );
+        offset = rdataOffset + rdlength;
       }
 
       udpSocket.send(
         Buffer.concat([
-          responseData.subarray(0, 12), // Only send the header section
+          responseHeader.headerToBuffer(),
           ...questions.map((question) => question.toBuffer()),
           ...answers.map((answer) => answer.toBuffer()),
         ]),
         remoteAddr.port,
         remoteAddr.address,
-      );
-
-      udpSocket.send(
-        responseData.subarray(0, 12), // Only send the header section
-        remoteAddr.port,
-        remoteAddr.address,
-        (err) => {
-          if (err) {
-            console.error(`Error sending response back to client: ${err}`);
-          }
-        },
       );
     });
 
