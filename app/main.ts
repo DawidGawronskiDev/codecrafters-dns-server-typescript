@@ -1,9 +1,6 @@
 import * as dgram from "dgram";
 import { DNSHeader, dnsHeaderBuilder } from "./dns-header";
-
-function hexToDecimal(hex: string): number {
-  return parseInt(hex, 16);
-}
+import { questionBuilder, type Question } from "./dns-question";
 
 const responseHeader: DNSHeader = dnsHeaderBuilder
   .withPacketId(1234)
@@ -54,13 +51,17 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       index += 2 + length * 2;
     }
 
-    console.log({ labels });
+    const question: Question = questionBuilder
+      .withName(labels.join("."))
+      .withType(1)
+      .withClass(1)
+      .build();
 
     // const questionSectionTypeBuffer: Buffer = data.subarray(-4, -2);
     // const questionSectionClassBuffer: Buffer = data.subarray(-2);
 
     udpSocket.send(
-      responseHeader.headerToBuffer(),
+      Buffer.concat([responseHeader.headerToBuffer(), question.toBuffer()]),
       remoteAddr.port,
       remoteAddr.address,
     );

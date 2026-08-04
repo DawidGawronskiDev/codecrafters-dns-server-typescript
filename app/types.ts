@@ -166,6 +166,16 @@ export interface DNSHeaderInterface {
   additionalCount: AdditionalCount;
 }
 
+/**
+ * Domain name represented as a sequence of labels, where
+ * each label consists of a length octet followed by that
+ * number of octets.  The domain name terminates with the
+ * zero length octet for the null label of the root.  Note
+ * that this field may be an odd number of octets; no
+ * padding is used.
+ *
+ * @size variable
+ */
 export type questionName = string;
 
 /**
@@ -221,3 +231,9 @@ export type QuestionType =
  * @size 16 bits
  */
 export type QuestionClass = 1 | 2 | 3 | 4;
+
+export interface QuestionInterface {
+  name: questionName;
+  type: QuestionType;
+  class: QuestionClass;
+}
