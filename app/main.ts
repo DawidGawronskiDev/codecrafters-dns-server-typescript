@@ -33,8 +33,7 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       .withAdditionalCount(1)
       .build();
 
-    data.toString("binary");
-    console.log({ data });
+    console.log({ binary: data.toString("binary") });
 
     const questionSectionNameBuffer: Buffer = data.subarray(12);
 
