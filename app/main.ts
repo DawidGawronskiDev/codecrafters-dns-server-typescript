@@ -28,36 +28,44 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       .withReserved(0)
       .withResponseCode(4)
       .withQuestionCount(questionCount)
-      .withAnswerCount(1)
-      .withAuthorityCount(1)
-      .withAdditionalCount(1)
+      .withAnswerCount(questionCount)
+      .withAuthorityCount(0)
+      .withAdditionalCount(0)
       .build();
 
-    const questionSectionNameBuffer: Buffer = data.subarray(12);
+    const questions: Question[] = [];
+    const answers: Answer[] = [];
+    let offset: number = 12;
 
-    const question: Question = questionBuilder
-      .withName(
-        Extractor.extractLabelsFromQuestionSectionNameBuffer(
-          questionSectionNameBuffer,
-        ).join("."),
-      )
-      .withType(1)
-      .withClass(1)
-      .build();
+    for (let i = 0; i < questionCount; i++) {
+      const { labels, nextOffset } = Extractor.extractName(data, offset);
+      const type = data.readUInt16BE(nextOffset);
+      const class_ = data.readUInt16BE(nextOffset + 2);
+      offset = nextOffset + 4;
 
-    const answer: Answer = answerBuilder
-      .withName(question.name)
-      .withType(1)
-      .withClass(1)
-      .withTimeToLive(120)
-      .withData(Buffer.from([8, 8, 8, 8]))
-      .build();
+      const question: Question = questionBuilder
+        .withName(labels.join("."))
+        .withType(type as Question["type"])
+        .withClass(class_ as Question["class"])
+        .build();
+      questions.push(question);
+
+      answers.push(
+        answerBuilder
+          .withName(question.name)
+          .withType(1)
+          .withClass(1)
+          .withTimeToLive(120)
+          .withData(Buffer.from([8, 8, 8, 8]))
+          .build(),
+      );
+    }
 
     udpSocket.send(
       Buffer.concat([
         responseHeader.headerToBuffer(),
-        question.toBuffer(),
-        answer.toBuffer(),
+        ...questions.map((question) => question.toBuffer()),
+        ...answers.map((answer) => answer.toBuffer()),
       ]),
       remoteAddr.port,
       remoteAddr.address,
