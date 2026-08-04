@@ -36,7 +36,6 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
     const questionSectionNameBuffer: Buffer = data.subarray(12);
 
     const labels = [];
-
     let cursor: number = 0;
     while (cursor < questionSectionNameBuffer.length) {
       const length: number = questionSectionNameBuffer.readUInt8(cursor);
@@ -54,17 +53,15 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       cursor += length + 1;
     }
 
-    console.log({ labels });
-
-    // const question: Question = questionBuilder
-    //   .withName(
-    //     Extractor.extractLabelsFromQuestionSectionNameBuffer(
-    //       questionSectionNameBuffer,
-    //     ).join("."),
-    //   )
-    //   .withType(1)
-    //   .withClass(1)
-    //   .build();
+    const question: Question = questionBuilder
+      .withName(
+        Extractor.extractLabelsFromQuestionSectionNameBuffer(
+          questionSectionNameBuffer,
+        ).join("."),
+      )
+      .withType(1)
+      .withClass(1)
+      .build();
 
     const answer: Answer = answerBuilder
       .withName(question.name)
