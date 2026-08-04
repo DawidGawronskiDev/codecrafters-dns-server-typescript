@@ -33,17 +33,15 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       .withAdditionalCount(1)
       .build();
 
-    const bytes = [];
+    const binary = data.toString("binary");
 
-    for (let i = 0; i < data.toString("binary").length; i++) {
-      bytes.push(
-        data.toString("binary").charCodeAt(i).toString(16).padStart(2, "0"),
-      );
+    for (let i = 0; i < binary.length; i++) {
+      if (i % 16 === 0) {
+        console.log("");
+      }
+      const byte = binary.charCodeAt(i);
+      console.log(byte.toString(16).padStart(2, "0") + " ");
     }
-
-    console.log({
-      chars: bytes.map((b) => String.fromCharCode(parseInt(b, 16))).join(""),
-    });
 
     const questionSectionNameBuffer: Buffer = data.subarray(12);
 
