@@ -115,7 +115,7 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       .withRecursionDesired(recursionDesired as RecursionDesired)
       .withRecursionAvailable(0)
       .withReserved(0)
-      .withResponseCode(4)
+      .withResponseCode(0)
       .withQuestionCount(questionCount)
       .withAnswerCount(questionCount)
       .withAuthorityCount(0)
