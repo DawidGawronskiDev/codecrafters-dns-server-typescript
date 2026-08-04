@@ -43,25 +43,17 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       pending -= 1;
       if (pending > 0) return;
 
-      const responseHeader: Header = headerBuilder
-        .withPacketId(packetId)
-        .withQueryResponseIndicator(1)
-        .withOperationCode(operationCode as OperationCode)
-        .withAuthorativeAnswer(0)
-        .withTruncation(0)
-        .withRecursionDesired(recursionDesired as RecursionDesired)
-        .withRecursionAvailable(0)
-        .withReserved(0)
-        .withResponseCode(operationCode === 0 ? 0 : 4)
-        .withQuestionCount(questionCount)
-        .withAnswerCount(answers.length)
-        .withAuthorityCount(0)
-        .withAdditionalCount(0)
-        .build();
+      const response = Buffer.alloc(12);
+      response.writeUInt16BE(packetId, 0);
+      response.writeUInt8(0x80 | (operationCode << 3) | recursionDesired, 2);
+      response.writeUInt16BE(questionCount, 4);
+      response.writeUInt16BE(answers.length, 6);
+      response.writeUInt16BE(0, 8);
+      response.writeUInt16BE(0, 10);
 
       udpSocket.send(
         Buffer.concat([
-          responseHeader.headerToBuffer(),
+          response,
           ...clientQuestions.map((q) => q.toBuffer()),
           ...answers.map((a) => a.toBuffer()),
         ]),
@@ -142,9 +134,9 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
     response.writeUInt16BE(packetId, 0);
     response.writeUInt8(0x80 | (operationCode << 3) | recursionDesired, 2);
     response.writeUInt16BE(questionCount, 4);
-    response.writeUInt16BE(questionCount, 6); // Answer count
-    response.writeUInt16BE(0, 8); // Authority count
-    response.writeUInt16BE(0, 10); // Additional count
+    response.writeUInt16BE(questionCount, 6);
+    response.writeUInt16BE(0, 8);
+    response.writeUInt16BE(0, 10);
 
     const questions: Question[] = [];
     const answers: Answer[] = [];
