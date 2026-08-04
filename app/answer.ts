@@ -1,38 +1,39 @@
 import type {
   AnswerClass,
-  AnswerDataLength,
+  AnswerData,
   AnswerInterface,
   AnswerName,
   AnswerTimeToLive,
   AnswerType,
 } from "./types";
+import { encodeName } from "./question";
 
 export class Answer implements AnswerInterface {
   name: AnswerName;
   type: AnswerType;
   class: AnswerClass;
   timeToLive: AnswerTimeToLive;
-  dataLength: AnswerDataLength;
+  data: Buffer;
 
   constructor(answer: AnswerInterface) {
     this.name = answer.name;
     this.type = answer.type;
     this.class = answer.class;
     this.timeToLive = answer.timeToLive;
-    this.dataLength = answer.dataLength;
+    this.data = answer.data;
   }
 
   toBuffer(): Buffer {
-    const nameBuffer = Buffer.from(this.name, "utf-8");
+    const nameBuffer = encodeName(this.name);
     const buffer = Buffer.alloc(10 + nameBuffer.length);
 
     nameBuffer.copy(buffer, 0);
     buffer.writeUInt16BE(this.type, nameBuffer.length);
     buffer.writeUInt16BE(this.class, nameBuffer.length + 2);
     buffer.writeUInt32BE(this.timeToLive, nameBuffer.length + 4);
-    buffer.writeUInt16BE(this.dataLength, nameBuffer.length + 8);
+    buffer.writeUInt16BE(this.data.length, nameBuffer.length + 8);
 
-    return buffer;
+    return Buffer.concat([buffer, this.data]);
   }
 }
 
@@ -41,14 +42,14 @@ export class AnswerBuilder {
   private type: AnswerType;
   private class_: AnswerClass;
   private timeToLive: AnswerTimeToLive;
-  private dataLength: AnswerDataLength;
+  private data: AnswerData;
 
   constructor() {
     this.name = "";
     this.type = 1; // Default to A record
     this.class_ = 1; // Default to IN class
     this.timeToLive = 0; // Default to 0 seconds
-    this.dataLength = 0; // Default to 0 bytes
+    this.data = Buffer.alloc(0);
   }
 
   withName(name: AnswerName): AnswerBuilder {
@@ -71,8 +72,8 @@ export class AnswerBuilder {
     return this;
   }
 
-  withDataLength(dataLength: AnswerDataLength): AnswerBuilder {
-    this.dataLength = dataLength;
+  withData(data: AnswerData): AnswerBuilder {
+    this.data = data;
     return this;
   }
 
@@ -82,7 +83,7 @@ export class AnswerBuilder {
       type: this.type,
       class: this.class_,
       timeToLive: this.timeToLive,
-      dataLength: this.dataLength,
+      data: this.data,
     });
   }
 }

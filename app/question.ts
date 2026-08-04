@@ -1,5 +1,16 @@
 import type { QuestionInterface, QuestionType, QuestionClass } from "./types";
 
+export function encodeName(name: string): Buffer {
+  const labelBuffers: Buffer[] = name.split(".").map((part) => {
+    const lengthBuffer = Buffer.alloc(1);
+    lengthBuffer.writeUInt8(part.length, 0);
+    return Buffer.concat([lengthBuffer, Buffer.from(part, "utf-8")]);
+  });
+
+  // Terminating 0-length byte
+  return Buffer.concat([...labelBuffers, Buffer.alloc(1)]);
+}
+
 export class Question implements QuestionInterface {
   name: string;
   type: QuestionType;
@@ -12,27 +23,13 @@ export class Question implements QuestionInterface {
   }
 
   toBuffer(): Buffer {
-    const nameParts: string[] = this.name.split(".");
-    const nameBufferArray: Buffer[] = [];
-
-    for (const part of nameParts) {
-      const length: number = part.length;
-      const lengthBuffer: Buffer = Buffer.alloc(1);
-      lengthBuffer.writeUInt8(length, 0);
-      const partBuffer: Buffer = Buffer.from(part, "utf-8");
-      nameBufferArray.push(lengthBuffer, partBuffer);
-    }
-
-    // Push 0 length byte to indicate the end of the name
-    nameBufferArray.push(Buffer.alloc(1));
-
     const typeBuffer: Buffer = Buffer.alloc(2);
     typeBuffer.writeUInt16BE(this.type, 0);
 
     const classBuffer: Buffer = Buffer.alloc(2);
     classBuffer.writeUInt16BE(this.class, 0);
 
-    return Buffer.concat([...nameBufferArray, typeBuffer, classBuffer]);
+    return Buffer.concat([encodeName(this.name), typeBuffer, classBuffer]);
   }
 }
 

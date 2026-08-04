@@ -309,16 +309,17 @@ export type AnswerClass = 1 | 2 | 3 | 4;
 export type AnswerTimeToLive = number;
 
 /**
- * The length of the RDATA field.
+ * Variable length string of octets that describes the resource.
+ * RDLENGTH (the length of this field) is derived from it, not stored separately.
  *
- * @size 16 bits
+ * @size variable
  */
-export type AnswerDataLength = number;
+export type AnswerData = Buffer;
 
 export interface AnswerInterface {
   name: AnswerName;
   type: AnswerType;
   class: AnswerClass;
   timeToLive: AnswerTimeToLive;
-  dataLength: AnswerDataLength;
+  data: AnswerData;
 }
