@@ -25,7 +25,7 @@ if (flag === "--resolver" && resolverAddress) {
   });
 
   resolverSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
-    console.log(`Received response from resolver: ${data.toString("hex")}`);
+    console.log(`Received response from resolver: ${data.toString("utf-8")}`);
     udpSocket.send(data, remoteAddr.port, remoteAddr.address, (err) => {
       if (err) {
         console.error(`Error sending data back to client: ${err}`);
