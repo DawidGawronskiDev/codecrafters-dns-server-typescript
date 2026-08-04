@@ -28,28 +28,7 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
   try {
     console.log(`Received data from ${remoteAddr.address}:${remoteAddr.port}`);
 
-    const questionSectionBuffer = data.subarray(12, -1);
-    const questionSectionHex = questionSectionBuffer.toString("hex");
-
-    let index = 0;
-    const labels: string[] = [];
-    while (index < questionSectionHex.length) {
-      const length = hexToDecimal(questionSectionHex.slice(index, index + 2));
-      index += 2;
-
-      if (length === 0) break;
-
-      let label = "";
-      for (let i = 0; i < length; i++) {
-        label += String.fromCharCode(
-          hexToDecimal(questionSectionHex.slice(index, index + 2)),
-        );
-        index += 2;
-      }
-      labels.push(label);
-    }
-
-    console.log({ rest: questionSectionHex.slice(index, -1) });
+    console.log(Buffer.from(data).toString("hex"));
 
     udpSocket.send(
       responseHeader.headerToBuffer(),
