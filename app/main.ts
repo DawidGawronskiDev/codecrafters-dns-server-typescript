@@ -67,6 +67,12 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       );
 
       resolverSocket.on("message", (responseData: Buffer) => {
+        console.log(
+          "resolver replied, length:",
+          responseData.length,
+          "hex:",
+          responseData.toString("hex"),
+        );
         try {
           const { nextOffset: questionEnd } = Extractor.extractName(
             responseData,
