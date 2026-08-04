@@ -16,11 +16,32 @@ if (flag === "--resolver" && resolverAddress) {
 
     const resolverSocket: dgram.Socket = dgram.createSocket("udp4");
 
-    resolverSocket.send(data, parseInt(resolverPort), resolverHost, (err) => {
-      if (err) {
-        console.error(`Error sending data to resolver: ${err}`);
+    const headerSectionBuffer = data.subarray(0, 12);
+    const questionSectionBuffer = data.subarray(12);
+
+    let cursor = 0;
+    while (cursor < questionSectionBuffer.length) {
+      const length = questionSectionBuffer[cursor];
+
+      console.log(`Question section length: ${length}`);
+
+      if (length === 0) {
+        break;
       }
-    });
+
+      cursor += length + 1;
+    }
+
+    resolverSocket.send(
+      Buffer.concat([headerSectionBuffer]),
+      parseInt(resolverPort),
+      resolverHost,
+      (err) => {
+        if (err) {
+          console.error(`Error sending data to resolver: ${err}`);
+        }
+      },
+    );
 
     resolverSocket.on("message", (responseData: Buffer) => {
       console.log(
