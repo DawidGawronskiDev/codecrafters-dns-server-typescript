@@ -24,7 +24,7 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
 
     resolverSocket.on("message", (responseData: Buffer) => {
       udpSocket.send(
-        responseData,
+        responseData.subarray(0, 12), // Only send the header section
         remoteAddr.port,
         remoteAddr.address,
         (err) => {
