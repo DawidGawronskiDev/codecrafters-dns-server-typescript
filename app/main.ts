@@ -16,13 +16,21 @@ if (flag === "--resolver" && resolverAddress) {
 
   const resolverSocket: dgram.Socket = dgram.createSocket("udp4");
 
-  resolverSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
-    console.log("Received response from resolver:", data);
+  udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
+    resolverSocket.send(data, parseInt(resolverPort), resolverHost, (err) => {
+      if (err) {
+        console.error(`Error sending data to resolver: ${err}`);
+      }
+    });
   });
 
-  udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
-    console.log("Forwarding query to resolver:", data);
-    resolverSocket.send(data, parseInt(resolverPort), resolverHost);
+  resolverSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
+    console.log(`Received response from resolver: ${data.toString("hex")}`);
+    udpSocket.send(data, remoteAddr.port, remoteAddr.address, (err) => {
+      if (err) {
+        console.error(`Error sending data back to client: ${err}`);
+      }
+    });
   });
 }
 
