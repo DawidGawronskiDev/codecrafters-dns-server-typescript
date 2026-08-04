@@ -44,17 +44,18 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
         .subarray(cursor + 1, cursor + 1 + length)
         .toString("utf-8");
 
-      console.log({ length, label });
-
       if (length === 0) {
         break;
       }
 
-      if (length > 63) {
+      if (length > 0) {
         labels.push(label);
       }
       cursor += length + 1;
     }
+
+    console.log({ labels });
+
     // const question: Question = questionBuilder
     //   .withName(
     //     Extractor.extractLabelsFromQuestionSectionNameBuffer(
