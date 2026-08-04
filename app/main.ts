@@ -3,22 +3,7 @@ import { Header, headerBuilder } from "./header";
 import { questionBuilder, type Question } from "./question";
 import { Extractor } from "./extractor";
 import { answerBuilder, type Answer } from "./answer";
-
-const responseHeader: Header = headerBuilder
-  .withPacketId(1234)
-  .withQueryResponseIndicator(1)
-  .withOperationCode(0)
-  .withAuthorativeAnswer(0)
-  .withTruncation(0)
-  .withRecursionDesired(0)
-  .withRecursionAvailable(0)
-  .withReserved(0)
-  .withResponseCode(0)
-  .withQuestionCount(1)
-  .withAnswerCount(1)
-  .withAuthorityCount(0)
-  .withAdditionalCount(0)
-  .build();
+import type { OperationCode, RecursionDesired, ResponseCode } from "./types";
 
 const udpSocket: dgram.Socket = dgram.createSocket("udp4");
 udpSocket.bind(2053, "127.0.0.1");
@@ -26,6 +11,31 @@ udpSocket.bind(2053, "127.0.0.1");
 udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
   try {
     console.log(`Received data from ${remoteAddr.address}:${remoteAddr.port}`);
+
+    const packetId: number = data.readUInt16BE(0);
+    const operationCode: number = (data.readUInt8(2) >> 3) & 0x0f;
+    const recursionDesired: number = data.readUInt8(2) & 0x01;
+    const responseCode: number = data.readUInt8(3) & 0x0f;
+    const questionCount: number = data.readUInt16BE(4);
+    const answerCount: number = data.readUInt16BE(6);
+    const authorityCount: number = data.readUInt16BE(8);
+    const additionalCount: number = data.readUInt16BE(10);
+
+    const responseHeader: Header = headerBuilder
+      .withPacketId(packetId)
+      .withQueryResponseIndicator(1)
+      .withOperationCode(operationCode as OperationCode)
+      .withAuthorativeAnswer(0)
+      .withTruncation(0)
+      .withRecursionDesired(recursionDesired as RecursionDesired)
+      .withRecursionAvailable(0)
+      .withReserved(0)
+      .withResponseCode(responseCode as ResponseCode)
+      .withQuestionCount(questionCount)
+      .withAnswerCount(answerCount)
+      .withAuthorityCount(authorityCount)
+      .withAdditionalCount(additionalCount)
+      .build();
 
     const questionSectionNameBuffer: Buffer = data.subarray(12);
 
