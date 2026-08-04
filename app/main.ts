@@ -22,6 +22,8 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
     const clientQuestions: Question[] = [];
     let offset: number = 12;
     for (let i = 0; i < questionCount; i++) {
+      console.log({ offset });
+
       const { labels, nextOffset } = Extractor.extractName(data, offset);
       const type = data.readUInt16BE(nextOffset);
       const class_ = data.readUInt16BE(nextOffset + 2);
