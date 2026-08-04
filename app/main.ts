@@ -15,10 +15,6 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
     const packetId: number = data.readUInt16BE(0);
     const operationCode: number = (data.readUInt8(2) >> 3) & 0x0f;
     const recursionDesired: number = data.readUInt8(2) & 0x01;
-    const questionCount: number = data.readUInt16BE(4);
-    const answerCount: number = data.readUInt16BE(6);
-    const authorityCount: number = data.readUInt16BE(8);
-    const additionalCount: number = data.readUInt16BE(10);
 
     const responseHeader: Header = headerBuilder
       .withPacketId(packetId)
