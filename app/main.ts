@@ -40,11 +40,7 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       .build();
 
     const answer: Answer = answerBuilder
-      .withName(
-        Extractor.extractLabelsFromQuestionSectionNameBuffer(
-          questionSectionNameBuffer,
-        ).join("."),
-      )
+      .withName(question.name)
       .withType(1)
       .withClass(1)
       .withTimeToLive(300)
