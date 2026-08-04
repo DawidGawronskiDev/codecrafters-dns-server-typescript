@@ -150,15 +150,21 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       );
     }
 
-    udpSocket.send(
-      Buffer.concat([
-        responseHeader.headerToBuffer(),
-        ...questions.map((question) => question.toBuffer()),
-        ...answers.map((answer) => answer.toBuffer()),
-      ]),
-      remoteAddr.port,
-      remoteAddr.address,
+    const responseBuffer = Buffer.concat([
+      responseHeader.headerToBuffer(),
+      ...questions.map((question) => question.toBuffer()),
+      ...answers.map((answer) => answer.toBuffer()),
+    ]);
+    console.log("REQUEST HEX:", data.toString("hex"));
+    console.log("RESPONSE HEX:", responseBuffer.toString("hex"));
+    console.log(
+      "questionCount:",
+      questionCount,
+      "parsed questions:",
+      questions.map((q) => q.name),
     );
+
+    udpSocket.send(responseBuffer, remoteAddr.port, remoteAddr.address);
   } catch (e) {
     console.log(`Error sending data: ${e}`);
   }
