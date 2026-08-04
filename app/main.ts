@@ -36,10 +36,41 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       );
     }
 
-    const answers: Answer[] = new Array(questionCount);
+    const answers: Answer[] = [];
     let pending = questionCount;
 
-    clientQuestions.forEach((question, index) => {
+    const sendResponseWhenDone = () => {
+      pending -= 1;
+      if (pending > 0) return;
+
+      const responseHeader: Header = headerBuilder
+        .withPacketId(packetId)
+        .withQueryResponseIndicator(1)
+        .withOperationCode(operationCode as OperationCode)
+        .withAuthorativeAnswer(0)
+        .withTruncation(0)
+        .withRecursionDesired(recursionDesired as RecursionDesired)
+        .withRecursionAvailable(0)
+        .withReserved(0)
+        .withResponseCode(0)
+        .withQuestionCount(questionCount)
+        .withAnswerCount(answers.length)
+        .withAuthorityCount(0)
+        .withAdditionalCount(0)
+        .build();
+
+      udpSocket.send(
+        Buffer.concat([
+          responseHeader.headerToBuffer(),
+          ...clientQuestions.map((q) => q.toBuffer()),
+          ...answers.map((a) => a.toBuffer()),
+        ]),
+        remoteAddr.port,
+        remoteAddr.address,
+      );
+    };
+
+    clientQuestions.forEach((question) => {
       const singleQuestionHeader = headerBuilder
         .withPacketId(packetId)
         .withQueryResponseIndicator(0)
@@ -67,12 +98,6 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       );
 
       resolverSocket.on("message", (responseData: Buffer) => {
-        console.log(
-          "resolver replied, length:",
-          responseData.length,
-          "hex:",
-          responseData.toString("hex"),
-        );
         try {
           const { nextOffset: questionEnd } = Extractor.extractName(
             responseData,
@@ -85,51 +110,24 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
           const rdlength = responseData.readUInt16BE(answerNameEnd + 8);
           const rdataOffset = answerNameEnd + 10;
 
-          answers[index] = answerBuilder
-            .withName(question.name)
-            .withType(1)
-            .withClass(1)
-            .withTimeToLive(120)
-            .withData(
-              Buffer.from(
-                responseData.subarray(rdataOffset, rdataOffset + rdlength),
-              ),
-            )
-            .build();
-
-          resolverSocket.close();
-          pending -= 1;
-
-          if (pending === 0) {
-            const responseHeader: Header = headerBuilder
-              .withPacketId(packetId)
-              .withQueryResponseIndicator(1)
-              .withOperationCode(operationCode as OperationCode)
-              .withAuthorativeAnswer(0)
-              .withTruncation(0)
-              .withRecursionDesired(recursionDesired as RecursionDesired)
-              .withRecursionAvailable(0)
-              .withReserved(0)
-              .withResponseCode(0)
-              .withQuestionCount(questionCount)
-              .withAnswerCount(questionCount)
-              .withAuthorityCount(0)
-              .withAdditionalCount(0)
-              .build();
-
-            udpSocket.send(
-              Buffer.concat([
-                responseHeader.headerToBuffer(),
-                ...clientQuestions.map((q) => q.toBuffer()),
-                ...answers.map((a) => a.toBuffer()),
-              ]),
-              remoteAddr.port,
-              remoteAddr.address,
-            );
-          }
+          answers.push(
+            answerBuilder
+              .withName(question.name)
+              .withType(1)
+              .withClass(1)
+              .withTimeToLive(120)
+              .withData(
+                Buffer.from(
+                  responseData.subarray(rdataOffset, rdataOffset + rdlength),
+                ),
+              )
+              .build(),
+          );
         } catch (e) {
           console.log(`Error handling resolver response: ${e}`);
+        } finally {
           resolverSocket.close();
+          sendResponseWhenDone();
         }
       });
     });
