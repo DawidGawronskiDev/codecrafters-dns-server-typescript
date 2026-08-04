@@ -35,11 +35,10 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
 
     const bytes = [];
 
-    for (let i = 0; i < data.length; i++) {
-      if (i % 16 === 0) {
-        bytes.push("\n");
-      }
-      bytes.push(data[i].toString(16).padStart(2, "0"));
+    for (let i = 0; i < data.toString("binary").length; i++) {
+      bytes.push(
+        data.toString("binary").charCodeAt(i).toString(16).padStart(2, "0"),
+      );
     }
 
     console.log(bytes, "Received data in hex format");
