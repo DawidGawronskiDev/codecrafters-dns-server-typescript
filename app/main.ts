@@ -40,7 +40,9 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
       .map((char) => parseInt(char, 16).toString(2).padStart(4, "0"))
       .join("");
 
-    console.log({ binary });
+    console.log({
+      bytes: binary.match(/.{1,8}/g)?.map((byte) => parseInt(byte, 2)),
+    });
 
     const questionSectionNameBuffer: Buffer = data.subarray(12);
 
