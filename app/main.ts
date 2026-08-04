@@ -8,9 +8,7 @@ import type { OperationCode, RecursionDesired } from "./types";
 const udpSocket: dgram.Socket = dgram.createSocket("udp4");
 udpSocket.bind(2053, "127.0.0.1");
 
-const [flag, address] = process.argv.slice(2);
-
-console.log({ flag, address });
+const [flag, resolverSocket] = process.argv.slice(2);
 
 udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
   try {
@@ -20,6 +18,21 @@ udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
     const operationCode: number = (data.readUInt8(2) >> 3) & 0x0f;
     const recursionDesired: number = data.readUInt8(2) & 0x01;
     const questionCount: number = data.readUInt16BE(4);
+
+    if (flag === "--resolver" && resolverSocket) {
+      const resolverSocketInstance: dgram.Socket = dgram.createSocket("udp4");
+
+      const [address, port] = resolverSocket.split(":");
+
+      resolverSocketInstance.send(data, parseInt(port), address);
+
+      resolverSocketInstance.on("message", (resolverData: Buffer) => {
+        udpSocket.send(resolverData, remoteAddr.port, remoteAddr.address);
+        resolverSocketInstance.close();
+      });
+
+      return;
+    }
 
     const responseHeader: Header = headerBuilder
       .withPacketId(packetId)
