@@ -1,192 +1,199 @@
 import * as dgram from "dgram";
-import { Header, headerBuilder } from "./header";
-import { questionBuilder, type Question } from "./question";
-import { Extractor } from "./extractor";
-import { answerBuilder, type Answer } from "./answer";
-import type { OperationCode, RecursionDesired } from "./types";
 
 const udpSocket: dgram.Socket = dgram.createSocket("udp4");
 udpSocket.bind(2053, "127.0.0.1");
 
-const [flag, resolverAddress] = process.argv.slice(2);
+const [flag, argument] = process.argv.slice(2);
 
-udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
-  if (flag === "--resolver" && resolverAddress) {
-    const [resolverHost, resolverPort] = resolverAddress.split(":");
+function parseNames(requestBuffer: Buffer): Buffer[] {
+  const names: Buffer[] = [];
 
-    const packetId: number = data.readUInt16BE(0);
-    const operationCode: number = (data.readUInt8(2) >> 3) & 0x0f;
-    const recursionDesired: number = data.readUInt8(2) & 0x01;
-    const questionCount: number = data.readUInt16BE(4);
+  let cursor = 12;
+  while (cursor < requestBuffer.length) {
+    const labels: Buffer[] = [];
+    let readCursor = cursor;
+    let jumped = false;
+    let bytesConsumed = 0;
 
-    const clientQuestions: Question[] = [];
-    let offset: number = 12;
-    for (let i = 0; i < questionCount; i++) {
-      const { labels, nextOffset } = Extractor.extractName(data, offset);
-      const type = data.readUInt16BE(nextOffset);
-      const class_ = data.readUInt16BE(nextOffset + 2);
-      offset = nextOffset + 4;
+    while (true) {
+      const lengthByte = requestBuffer[readCursor];
 
-      clientQuestions.push(
-        questionBuilder
-          .withName(labels.join("."))
-          .withType(type as Question["type"])
-          .withClass(class_ as Question["class"])
-          .build(),
+      if (lengthByte === 0x00) {
+        if (!jumped) bytesConsumed += 1;
+        break;
+      }
+
+      if ((lengthByte & 0xc0) === 0xc0) {
+        // Compression pointer
+        const pointer =
+          ((lengthByte & 0x3f) << 8) | requestBuffer[readCursor + 1];
+        if (!jumped) bytesConsumed += 2;
+        readCursor = pointer;
+        jumped = true;
+        continue;
+      }
+
+      labels.push(
+        requestBuffer.subarray(readCursor, readCursor + 1 + lengthByte),
       );
+      if (!jumped) bytesConsumed += 1 + lengthByte;
+      readCursor += 1 + lengthByte;
     }
 
-    const answers: Answer[] = [];
-    let pending = questionCount;
-
-    const sendMergedResponse = () => {
-      pending -= 1;
-      if (pending > 0) return;
-
-      const responseHeader: Header = headerBuilder
-        .withPacketId(packetId)
-        .withQueryResponseIndicator(1)
-        .withOperationCode(operationCode as OperationCode)
-        .withAuthorativeAnswer(0)
-        .withTruncation(0)
-        .withRecursionDesired(recursionDesired as RecursionDesired)
-        .withRecursionAvailable(0)
-        .withReserved(0)
-        .withResponseCode(operationCode === 0 ? 0 : 4)
-        .withQuestionCount(questionCount)
-        .withAnswerCount(answers.length)
-        .withAuthorityCount(0)
-        .withAdditionalCount(0)
-        .build();
-
-      udpSocket.send(
-        Buffer.concat([
-          responseHeader.headerToBuffer(),
-          ...clientQuestions.map((q) => q.toBuffer()),
-          ...answers.map((a) => a.toBuffer()),
-        ]),
-        remoteAddr.port,
-        remoteAddr.address,
-      );
-    };
-
-    clientQuestions.forEach((question) => {
-      const flattenedHeader: Header = headerBuilder
-        .withPacketId(packetId)
-        .withQueryResponseIndicator(0)
-        .withOperationCode(operationCode as OperationCode)
-        .withAuthorativeAnswer(0)
-        .withTruncation(0)
-        .withRecursionDesired(recursionDesired as RecursionDesired)
-        .withRecursionAvailable(0)
-        .withReserved(0)
-        .withResponseCode(0)
-        .withQuestionCount(1)
-        .withAnswerCount(0)
-        .withAuthorityCount(0)
-        .withAdditionalCount(0)
-        .build();
-
-      const resolverSocket: dgram.Socket = dgram.createSocket("udp4");
-      resolverSocket.send(
-        Buffer.concat([flattenedHeader.headerToBuffer(), question.toBuffer()]),
-        parseInt(resolverPort),
-        resolverHost,
-      );
-
-      resolverSocket.on("message", (responseData: Buffer) => {
-        try {
-          const { nextOffset: questionEnd } = Extractor.extractName(
-            responseData,
-            12,
-          );
-          const { nextOffset: answerNameEnd } = Extractor.extractName(
-            responseData,
-            questionEnd + 4,
-          );
-          const rdlength = responseData.readUInt16BE(answerNameEnd + 8);
-          const rdataOffset = answerNameEnd + 10;
-
-          answers.push(
-            answerBuilder
-              .withName(question.name)
-              .withType(1)
-              .withClass(1)
-              .withTimeToLive(120)
-              .withData(
-                Buffer.from(
-                  responseData.subarray(rdataOffset, rdataOffset + rdlength),
-                ),
-              )
-              .build(),
-          );
-        } catch (e) {
-          console.log(`Error handling resolver response: ${e}`);
-        } finally {
-          resolverSocket.close();
-          sendMergedResponse();
-        }
-      });
-    });
-
-    return;
+    names.push(Buffer.concat([...labels, Buffer.from([0x00])]));
+    cursor += bytesConsumed + 4; // name + QTYPE + QCLASS
   }
 
+  return names;
+}
+
+function createQuestionBuffer(name: Buffer): Buffer {
+  return Buffer.concat([
+    name,
+    Buffer.from([0x00, 0x01]), // QTYPE = 0x0001 (A record)
+    Buffer.from([0x00, 0x01]), // QCLASS = 0x0001 (IN)
+  ]);
+}
+
+function createAnswerBuffer(name: Buffer): Buffer {
+  return Buffer.concat([
+    name,
+    Buffer.from([0x00, 0x01]), // TYPE = A
+    Buffer.from([0x00, 0x01]), // CLASS = IN
+    Buffer.from([0x00, 0x00, 0x00, 0x3c]), // TTL = 60
+    Buffer.from([0x00, 0x04]), // RDLENGTH = 4
+    Buffer.from([8, 8, 8, 8]), // RDATA = 8.8.8.8
+  ]);
+}
+
+function queryResolver(
+  id: Buffer,
+  questionBuffer: Buffer,
+  hostname: string,
+  port: number,
+): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    const resolver = dgram.createSocket("udp4");
+
+    resolver.send(
+      Buffer.concat([
+        Buffer.from([
+          ...id,
+          0x00, // QR = 0, OPCODE = 0, AA = 0, TC = 0, RD = 0
+          0x00, // RA = 0, Z = 0, RCODE = 0
+          0x00,
+          0x01, // QDCOUNT = 1
+          0x00,
+          0x00, // ANCOUNT = 0
+          0x00,
+          0x00, // NSCOUNT = 0
+          0x00,
+          0x00, // ARCOUNT = 0
+        ]),
+        questionBuffer,
+      ]),
+      port,
+      hostname,
+    );
+
+    resolver.on("message", (resolverData: Buffer) => {
+      resolver.close();
+      resolve(resolverData.subarray(12 + questionBuffer.length));
+    });
+
+    resolver.on("error", (err) => {
+      resolver.close();
+      reject(err);
+    });
+  });
+}
+
+udpSocket.on("message", (data: Buffer, remoteAddr: dgram.RemoteInfo) => {
+  const opcode = (data[2] >> 3) & 0x0f;
+
+  const names = parseNames(data);
+  const questionBuffers = names.map(createQuestionBuffer);
+  const answerBuffers = names.map(createAnswerBuffer);
+
   try {
-    const packetId: number = data.readUInt16BE(0);
-    const operationCode: number = (data.readUInt8(2) >> 3) & 0x0f;
-    const recursionDesired: number = data.readUInt8(2) & 0x01;
-    const questionCount: number = data.readUInt16BE(4);
+    if (flag === "--resolver" && argument) {
+      const [hostname, port] = argument.split(":");
+      const id = data.subarray(0, 2);
 
-    const responseHeader: Header = headerBuilder
-      .withPacketId(packetId)
-      .withQueryResponseIndicator(1)
-      .withOperationCode(operationCode as OperationCode)
-      .withAuthorativeAnswer(0)
-      .withTruncation(0)
-      .withRecursionDesired(recursionDesired as RecursionDesired)
-      .withRecursionAvailable(0)
-      .withReserved(0)
-      .withResponseCode(operationCode === 0 ? 0 : 4)
-      .withQuestionCount(questionCount)
-      .withAnswerCount(questionCount)
-      .withAuthorityCount(0)
-      .withAdditionalCount(0)
-      .build();
+      Promise.all(
+        questionBuffers.map((questionBuffer) =>
+          queryResolver(id, questionBuffer, hostname, parseInt(port)),
+        ),
+      )
+        .then((resolvedAnswers) => {
+          udpSocket.send(
+            Buffer.concat([
+              /**
+               * Header Section
+               */
+              Buffer.from([
+                ...id,
+                0x80 | // QR = 1
+                  (data.subarray(2, 4)[0] & 0x78) | // OPCODE
+                  (data.subarray(2, 4)[0] & 0x01), // RD
+                opcode === 0 ? 0x00 : 0x04, // RA = 0, Z = 0, RCODE = 0 | 4
+                0x00,
+                questionBuffers.length, // QDCOUNT
+                0x00,
+                resolvedAnswers.length, // ANCOUNT
+                0x00,
+                0x00, // NSCOUNT = 0
+                0x00,
+                0x00, // ARCOUNT = 0
+              ]),
+              /**
+               * Question Section
+               */
+              Buffer.concat(questionBuffers),
+              /**
+               * Answer Section
+               */
+              Buffer.concat(resolvedAnswers),
+            ]),
+            remoteAddr.port,
+            remoteAddr.address,
+          );
+        })
+        .catch((err) => {
+          console.log(`Resolver error: ${err}`);
+        });
 
-    const questions: Question[] = [];
-    const answers: Answer[] = [];
-    let offset: number = 12;
-
-    for (let i = 0; i < questionCount; i++) {
-      const { labels, nextOffset } = Extractor.extractName(data, offset);
-      const type = data.readUInt16BE(nextOffset);
-      const class_ = data.readUInt16BE(nextOffset + 2);
-      offset = nextOffset + 4;
-
-      const question: Question = questionBuilder
-        .withName(labels.join("."))
-        .withType(type as Question["type"])
-        .withClass(class_ as Question["class"])
-        .build();
-      questions.push(question);
-
-      answers.push(
-        answerBuilder
-          .withName(question.name)
-          .withType(1)
-          .withClass(1)
-          .withTimeToLive(120)
-          .withData(Buffer.from([8, 8, 8, 8]))
-          .build(),
-      );
+      return;
     }
 
     udpSocket.send(
       Buffer.concat([
-        responseHeader.headerToBuffer(),
-        ...questions.map((question) => question.toBuffer()),
-        ...answers.map((answer) => answer.toBuffer()),
+        /**
+         * Header Section
+         */
+        Buffer.from([
+          ...data.subarray(0, 2), // ID
+          0x80 | // QR = 1
+            (data.subarray(2, 4)[0] & 0x78) | // OPCODE
+            (data.subarray(2, 4)[0] & 0x01), // RD
+          opcode === 0 ? 0x00 : 0x04, // RA = 0, Z = 0, RCODE = 0 | 4
+          0x00,
+          questionBuffers.length, // QDCOUNT
+          0x00,
+          questionBuffers.length, // ANCOUNT
+          0x00,
+          0x00, // NSCOUNT = 0
+          0x00,
+          0x00, // ARCOUNT = 0
+        ]),
+        /**
+         * Question Section
+         */
+        Buffer.concat(questionBuffers),
+        /**
+         * Answer Section
+         */
+        Buffer.concat(answerBuffers),
       ]),
       remoteAddr.port,
       remoteAddr.address,
